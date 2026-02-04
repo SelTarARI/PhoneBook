@@ -23,7 +23,7 @@ public class MainView extends VerticalLayout {
     private final TextField search = new TextField("Search");
     private final Crud<Contact> crud;
 
-    private CallbackDataProvider<Contact, Void> dataProvider;
+    private final CallbackDataProvider<Contact, Void> dataProvider;
 
     public MainView() {
         setSizeFull();
@@ -44,42 +44,33 @@ public class MainView extends VerticalLayout {
         crud.getGrid().addColumn(Contact::getEmail).setHeader("Email").setAutoWidth(true).setFlexGrow(1);
         crud.getGrid().addColumn(Contact::getPhone).setHeader("Phone").setAutoWidth(true);
 
+        // Vaadin 25: make editing obvious by opening editor when a row is clicked
+        crud.setEditOnClick(false);
         crud.getGrid().addItemClickListener(event ->
                 crud.edit(event.getItem(), Crud.EditMode.EXISTING_ITEM)
         );
 
-        crud.setEditorPosition(Crud.EditorPosition.ASIDE);
-        crud.setEditOnClick(false);
-
-        crud.getGrid().addItemClickListener(e ->
-                crud.edit(e.getItem(), Crud.EditMode.EXISTING_ITEM)
-        );
-
+        // Optional: control grid height so it doesn't look "empty" with few rows
         crud.getGrid().setHeight("350px");
-
 
         // Data provider (DB-backed)
         dataProvider = new CallbackDataProvider<>(
-                // fetch
-                query -> repo.search(search.getValue()).stream(),
-                // count
-                query -> repo.search(search.getValue()).size()
+                query -> repo.search(search.getValue()).stream(),     // fetch
+                query -> repo.search(search.getValue()).size()        // count
         );
         crud.setDataProvider(dataProvider);
 
         // Search triggers refresh
         search.addValueChangeListener(e -> dataProvider.refreshAll());
 
-        // Save listener: Crud fires this for both new and edited items
+        // Save = create or update (based on id)
         crud.addSaveListener(e -> {
             Contact item = e.getItem();
             try {
                 if (item.getId() == null) {
-                    // New item
                     repo.insert(item);
                     Notification.show("Added");
                 } else {
-                    // Existing item: optimistic locking based on current version in the object
                     int expectedVersion = item.getVersion();
                     repo.update(item, expectedVersion);
                     Notification.show("Updated");
@@ -91,7 +82,7 @@ public class MainView extends VerticalLayout {
             }
         });
 
-        // Delete listener
+        // Delete
         crud.addDeleteListener(e -> {
             Contact item = e.getItem();
             try {
