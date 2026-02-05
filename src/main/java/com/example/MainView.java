@@ -2,6 +2,7 @@ package com.example;
 
 import com.example.db.ContactRepositoryJdbc;
 import com.example.model.Contact;
+import com.example.util.PhoneUtil;
 import com.vaadin.flow.component.crud.BinderCrudEditor;
 import com.vaadin.flow.component.crud.Crud;
 import com.vaadin.flow.component.crud.CrudEditor;
@@ -13,6 +14,7 @@ import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.provider.CallbackDataProvider;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Route;
 
 @Route("")
@@ -33,8 +35,9 @@ public class MainView extends VerticalLayout {
         search.setPlaceholder("Search by name, phone, email, city, country...");
         search.setClearButtonVisible(true);
         search.setWidthFull();
+        search.setValueChangeMode(ValueChangeMode.LAZY);
 
-        // CRUD (Grid + editor)
+        // CRUD
         crud = new Crud<>(Contact.class, createEditor());
         crud.setSizeFull();
 
@@ -44,26 +47,25 @@ public class MainView extends VerticalLayout {
         crud.getGrid().addColumn(Contact::getEmail).setHeader("Email").setAutoWidth(true).setFlexGrow(1);
         crud.getGrid().addColumn(Contact::getPhone).setHeader("Phone").setAutoWidth(true);
 
-        // Vaadin 25: make editing obvious by opening editor when a row is clicked
+        // Make editing obvious by opening editor when a row is clicked
         crud.setEditOnClick(false);
         crud.getGrid().addItemClickListener(event ->
                 crud.edit(event.getItem(), Crud.EditMode.EXISTING_ITEM)
         );
 
-        // Optional: control grid height so it doesn't look "empty" with few rows
+        // Optional: reduce "empty" look when few rows
         crud.getGrid().setHeight("350px");
 
         // Data provider (DB-backed)
         dataProvider = new CallbackDataProvider<>(
-                query -> repo.search(search.getValue()).stream(),     // fetch
-                query -> repo.search(search.getValue()).size()        // count
+                query -> repo.search(search.getValue()).stream(),
+                query -> repo.search(search.getValue()).size()
         );
         crud.setDataProvider(dataProvider);
 
-        // Search triggers refresh
         search.addValueChangeListener(e -> dataProvider.refreshAll());
 
-        // Save = create or update (based on id)
+        // Save = create or update
         crud.addSaveListener(e -> {
             Contact item = e.getItem();
             try {
@@ -116,6 +118,9 @@ public class MainView extends VerticalLayout {
         phone.setWidthFull();
         email.setWidthFull();
 
+        phone.setHelperText("Allowed: digits, optional leading '+', or start with 00 (will be converted to +).");
+        phone.setPlaceholder("+12025550198  or  00442079460958");
+
         FormLayout form = new FormLayout(name, phone, email, street, city, country);
         form.setResponsiveSteps(
                 new FormLayout.ResponsiveStep("0", 1),
@@ -124,18 +129,39 @@ public class MainView extends VerticalLayout {
 
         Binder<Contact> binder = new Binder<>(Contact.class);
 
+        // Name: trim + required
         binder.forField(name)
+                .withConverter(v -> v == null ? "" : v.trim(), v -> v)
                 .asRequired("Name is required")
                 .bind(Contact::getName, Contact::setName);
 
+        // Phone: normalize + validate + store normalized
         binder.forField(phone)
                 .asRequired("Phone is required")
+                .withValidator(v -> PhoneUtil.isValidNormalized(PhoneUtil.normalize(v)),
+                        "Phone must be 7–16 digits (optionally starting with '+'). You may also start with 00.")
+                .withConverter(
+                        v -> PhoneUtil.normalize(v),
+                        v -> v
+                )
                 .bind(Contact::getPhone, Contact::setPhone);
 
-        binder.bind(street, Contact::getStreet, Contact::setStreet);
-        binder.bind(city, Contact::getCity, Contact::setCity);
-        binder.bind(country, Contact::getCountry, Contact::setCountry);
-        binder.bind(email, Contact::getEmail, Contact::setEmail);
+        // Optional fields: trim -> null
+        binder.forField(street)
+                .withConverter(PhoneUtil::trimToNull, v -> v)
+                .bind(Contact::getStreet, Contact::setStreet);
+
+        binder.forField(city)
+                .withConverter(PhoneUtil::trimToNull, v -> v)
+                .bind(Contact::getCity, Contact::setCity);
+
+        binder.forField(country)
+                .withConverter(PhoneUtil::trimToNull, v -> v)
+                .bind(Contact::getCountry, Contact::setCountry);
+
+        binder.forField(email)
+                .withConverter(PhoneUtil::trimToNull, v -> v)
+                .bind(Contact::getEmail, Contact::setEmail);
 
         return new BinderCrudEditor<>(binder, form);
     }
