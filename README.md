@@ -1,139 +1,166 @@
 # Phone Book Application (Vaadin + JDBC)
 
-## Project Description
+## Overview
 
-This project is a **Phone Book application** implemented using **Vaadin Flow** for the user interface and **plain JDBC** for persistence.  
-The goal of the assignment was to design and implement a CRUD application step by step, starting with in-memory storage and later migrating to a relational database, while respecting specific constraints.
+This project implements a **Phone Book application** using **Vaadin Flow** for the user interface and **plain JDBC** for persistence.  
+The application was developed according to an assignment that required building a CRUD system step by step, starting with in-memory storage and later migrating to a MySQL database, while handling data integrity and multi-user access correctly.
 
-The application allows users to:
-- add contacts
-- update contacts
-- delete contacts
-- search contacts
-- handle concurrent (multi-user) updates safely
+The final solution provides a complete, working phone book system with careful attention to efficiency, correctness, and clarity of design.
 
 ---
 
-## Assignment Requirements (What Was Wanted)
+## Implemented Functionality
 
-### Functional Requirements
-1. Store contact information including:
-   - Name
-   - Street
-   - City
-   - Country
-   - Phone number
-   - Email address
+### Contact Data Model
 
-2. Provide a user interface that allows:
-   - Adding a person
-   - Deleting a person
-   - Searching for a person
-   - Updating a person’s information
+Each contact in the system contains the following information:
+- Name  
+- Street  
+- City  
+- Country  
+- Phone number  
+- Email address  
 
-3. The opening screen must show:
-   - A **grid** with a **summary** of contacts  
-     (name, email address, phone number)
-
-4. Storage must be implemented **in steps**:
-   - **Step 1:** Store contacts **in memory**
-   - **Step 2:** Store contacts in a **MySQL database**
-
-5. The phone number must be:
-   - **Unique**
-   - Uniqueness check should be **O(n)** or better
-
-6. The application must support **multiple users**:
-   - If one user updates a contact while another user is editing it, the second user must be **warned**
-
-### Technical Constraints
-- Spring or similar frameworks **must not be used**
-- CRUD operations must be implemented explicitly
+All fields are handled using Unicode, allowing international characters (such as Turkish characters) without any special configuration.
 
 ---
 
-## Implementation Summary (What We Provided)
+### User Interface
 
-### 1. User Interface (Vaadin)
-- Implemented using **Vaadin Flow**
-- Uses the **Vaadin `Crud<Contact>` component**
-- The opening screen shows a **grid summary**
-- Clicking a row opens an editor dialog
-- Search functionality is provided
+The application provides a web-based user interface built with **Vaadin Flow**:
 
----
+- The opening screen displays a **grid summary** of contacts.
+- Summary columns include:
+  - Name
+  - Email
+  - Phone number
+- Users can:
+  - Add new contacts
+  - Edit existing contacts by clicking a row
+  - Delete contacts
+  - Search contacts using a search field
 
-### 2. Step 1: In-Memory Storage
-- Implemented using an in-memory service (`ContactService`)
-- Contacts stored in a `HashMap<String, Contact>` keyed by phone number
-- Uniqueness is checked using constant-time map lookup
-
-**Complexity:**  
-- Uniqueness check: **O(1)** average case (better than required O(n))
+CRUD operations are implemented explicitly using the Vaadin `Crud<Contact>` component, without relying on backend frameworks such as Spring.
 
 ---
 
-### 3. Step 2: MySQL Database Storage
-- Implemented using **plain JDBC**
-- MySQL table stores all contact fields
-- Phone number is enforced as `UNIQUE`
-- Database schema matches the domain model
+### Step 1: In-Memory Storage
+
+As the first development step, contact information was stored **entirely in memory**.
+
+- Contacts are stored in a `HashMap<String, Contact>`, where the **key is the phone number**.
+- This design allows direct access to contacts without scanning a list.
+
+**Uniqueness handling:**
+- Phone number uniqueness is enforced by checking key existence in the map.
+- This check runs in **O(1) average time**, which is more efficient than the required O(n) upper bound.
+
+This step demonstrates that the core CRUD logic works independently of any database.
 
 ---
 
-### 4. Phone Number Handling & Uniqueness
-- Phone numbers stored as strings
-- Normalized before storage (separators removed, `00` → `+`)
-- Enforced unique both in memory and database
+### Step 2: MySQL Database Storage
+
+After validating the in-memory implementation, persistence was added using **MySQL** and **plain JDBC**.
+
+- A database table stores all contact fields.
+- The phone number column is defined with a **UNIQUE constraint**.
+- CRUD operations (insert, update, delete, search) are implemented manually using SQL.
+- No ORM or framework-based persistence is used.
+
+The database schema mirrors the in-memory data model, ensuring consistency across storage layers.
 
 ---
 
-### 5. Multi-User Support
-- Implemented using **optimistic locking**
-- Each contact has a `version` field
-- Conflicting updates are detected and warned to the user
+### Phone Number Handling and Normalization
+
+Phone numbers are stored as strings to support international formats.
+
+Before storage, phone numbers are normalized:
+- Whitespace and separators are removed
+- Numbers starting with `00` are converted to `+`
+- Only digits and an optional leading `+` are stored
+
+This guarantees:
+- Consistent storage format
+- Reliable uniqueness checks
+- Support for international phone numbers
 
 ---
 
-### 6. Unicode Support
-- Supports international characters (e.g. Turkish characters)
-- Uses UTF-8 / Unicode end-to-end
+### Multi-User Support
+
+The application supports concurrent access by multiple users.
+
+- Each contact includes a `version` field.
+- Updates use **optimistic locking**:
+  - An update succeeds only if the record version matches.
+  - If another user has modified the contact, the update fails.
+- In case of conflict, the user is shown a warning message.
+
+This approach ensures data integrity without locking the database.
+
+---
+
+### Technical Constraints and Design Choices
+
+- No Spring or similar frameworks are used.
+- All CRUD logic is implemented explicitly.
+- In-memory and database storage are clearly separated.
+- Efficient data structures are used where appropriate.
+- Unicode support is handled naturally through modern Java, Vaadin, and MySQL (`utf8mb4`).
 
 ---
 
 ## Technologies Used
-- Java 21
-- Vaadin Flow
-- Maven
-- MySQL
-- JDBC
-- Jetty
+
+- Java 21  
+- Vaadin Flow  
+- Maven  
+- MySQL  
+- JDBC  
+- Jetty (development server)
 
 ---
 
-## How to Run
+## Running the Application
+
+1. Ensure Java 21 and MySQL are installed.
+2. Create the database using the provided SQL script.
+3. Configure database credentials.
+4. Run the application:
 
 ```bash
 mvn jetty:run
 ```
 
-Open: http://localhost:8080
+5. Open a browser at:
+
+```
+http://localhost:8080
+```
 
 ---
 
-## Multi-User Test Procedure
-1. Open app in two browsers
-2. Edit the same contact
-3. Save in one browser
-4. Save in the other → warning is shown
+## Multi-User Test Scenario
+
+To demonstrate concurrent access handling:
+
+1. Open the application in two different browsers or sessions.
+2. Edit the same contact in both sessions.
+3. Save the contact in the first session.
+4. Attempt to save in the second session.
+5. A warning message is shown, indicating the contact was updated by another user.
 
 ---
 
 ## Conclusion
 
-All assignment requirements have been fully satisfied, including:
-- CRUD functionality
-- In-memory and database storage
-- Efficient uniqueness checking
-- Multi-user conflict handling
-- No forbidden frameworks
+The project delivers a complete phone book application that:
+- Implements full CRUD functionality
+- Demonstrates in-memory storage and database-backed storage
+- Enforces phone number uniqueness efficiently
+- Handles multi-user update conflicts correctly
+- Respects all technical constraints of the assignment
+
+The final solution is clean, efficient, and aligned with real-world best practices while remaining within the intended scope of the assignment.
