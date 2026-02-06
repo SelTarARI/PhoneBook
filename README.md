@@ -142,18 +142,6 @@ http://localhost:8080
 
 ---
 
-## Multi-User Test Scenario
-
-To demonstrate concurrent access handling:
-
-1. Open the application in two different browsers or sessions.
-2. Edit the same contact in both sessions.
-3. Save the contact in the first session.
-4. Attempt to save in the second session.
-5. A warning message is shown, indicating the contact was updated by another user.
-
----
-
 ## Conclusion
 
 The project delivers a complete phone book application that:
