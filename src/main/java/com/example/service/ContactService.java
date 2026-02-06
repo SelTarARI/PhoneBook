@@ -11,13 +11,6 @@ public class ContactService {
     // phone -> contact (phone is unique)
     private final Map<String, Contact> byPhone = new ConcurrentHashMap<>();
 
-    public ContactService() {
-        // seed data (temporary)
-        add(new Contact("Ada Lovelace", "1 First St", "London", "UK", "+44-1111", "ada@example.com"));
-        add(new Contact("Alan Turing", "2 Second St", "Manchester", "UK", "+44-2222", "alan@example.com"));
-        add(new Contact("Grace Hopper", "3 Third St", "New York", "USA", "+1-3333", "grace@example.com"));
-    }
-
     public List<Contact> findAll() {
         return byPhone.values().stream()
                 .sorted(Comparator.comparing(Contact::getName, String.CASE_INSENSITIVE_ORDER))

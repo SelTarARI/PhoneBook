@@ -9,7 +9,7 @@ public class DbConfig {
             env("PHONEBOOK_DB_USER", "root");
 
     public static final String PASSWORD =
-            env("PHONEBOOK_DB_PASSWORD", "Root@123"); // fallback; ideally change/remove before final submission
+            env("PHONEBOOK_DB_PASSWORD", "Root@123");
 
     private static String env(String key, String fallback) {
         String v = System.getenv(key);

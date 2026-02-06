@@ -64,7 +64,7 @@ public final class PhoneUtil {
     public static String normalizeAndValidateOrThrow(String raw) {
         String n = normalize(raw);
         if (!isValidNormalized(n)) {
-            throw new IllegalArgumentException("Phone must be 7–16 digits (optionally starting with '+'). You may also start with 00 for international prefix.");
+            throw new IllegalArgumentException("Phone must be 7-16 digits (optionally starting with '+'). You may also start with 00 for international prefix.");
         }
         return n;
     }
